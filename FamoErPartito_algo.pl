@@ -1,18 +1,12 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use utf8;
 
-####################################################################
-
-############
-# Regole:
-# - Verbi [preposizione + articolo] sostantivi
-# - Preposizione Sostantivi articolo  aggettivi
-# - Sostantivi + preposizione articolo  Sostantivi
-# - Verbi + avverbi
-############
-
-
+# ###################################################################
+# Costanti
+# ###################################################################
+#
 my %aggettivi=(
     "Italiano"      => {"sm" => "Italiano", "sf" => "Italiana", "pm" => "Italiani", "pf" => "Italiane"},
     "Europeo"       => {"sm" => "Europeo", "sf" => "Europea", "pm" => "Europei", "pf" => "Europee"},
@@ -23,7 +17,7 @@ my %aggettivi=(
     "Civile"        => {"sm" => "Civile", "sf" => "Civile", "pm" => "Civili", "pf" => "Civili"},
     "Unito"         => {"sm" => "Unito", "sf" => "Unita", "pm" => "Uniti", "pf" => "Unite"},
     "Uguale"        => {"sm" => "Uguale", "sf" => "Uguale", "pm" => "Uguali", "pf" => "Uguali"},
-    "Libero"        => {"sm" => "Libero", "sf" => "Libere", "pm" => "Liberi", "pf" => "Libere"},
+    "Libero"        => {"sm" => "Libero", "sf" => "Libera", "pm" => "Liberi", "pf" => "Libere"},
     "Avanti"        => {"sm" => "Avanti", "sf" => "Avanti", "pm" => "Avanti", "pf" => "Avanti"},
     "Sovrano"       => {"sm" => "Sovrano", "sf" => "Sovrana", "pm" => "Sovrani", "pf" => "Sovrane"},
     "Tutto"         => {"sm" => "Tutto", "sf" => "Tutta", "pm" => "Tutti", "pf" => "Tutto"},
@@ -72,7 +66,10 @@ my %sostantivi=(
     "Valore"        => "sm" ,
     "Valori"        => "pm" ,
     "Diritto"       => "sm" ,
-    "Diritti"       => "pm"
+    "Diritti"       => "pm" ,
+    "Basta"         => "sf" ,
+    "Costituzione"  => "sf" ,
+    "Identità"      => "sf"
 );
 
 my @preposizioni=(
@@ -102,16 +99,44 @@ my @avverbi=(
 );
 
 my @verbi=(
-    "Costruire",
-    "Riformare",
-    "Partecipare",
-    "Fare",
-    "Scegliere",
-    "Proporre",
-    "Unire",
-    "Unirsi",
+    "Agire con",
+    "Agire per",
+    "Amministrare",
+    "Avanzare",
+    "Cambiare",
     "Camminare",
-    "Far progredire"
+    "Comprendere",
+    "Condividere",
+    "Conseguire",
+    "Costruire",
+    "Creare",
+    "Credere",
+    "Crescere",
+    "Difendere",
+    "Far Evolvere",
+    "Far progredire",
+    "Fare",
+    "Favorire",
+    "Fondare",
+    "Ideare",
+    "Innovare",
+    "Immaginare",
+    "Inventare",
+    "Migliorare",
+    "Partecipare",
+    "Potenziare",
+    "Proporre",
+    "Proseguire",
+    "Realizzare",
+    "Rifare",
+    "Riformare",
+    "Rinnovare",
+    "Scegliere",
+    "Sostenere",
+    "Sviluppare",
+    "Unire",
+    "Unirsi con",
+    "Unirsi per"
 );
 
 my %articoli=(
@@ -122,7 +147,7 @@ my %articoli=(
 
 # ##################
 # Subs di ausilio
-# @@@@@@@@@@@@@@@@@@
+# ##################
 
 sub articolo($){
     my $sostantivo=shift;
@@ -155,17 +180,12 @@ sub articolo($){
 }
 
 sub randVerbo(){
-    # Scelgo una congiunzione per legarli
     my $verbo = $verbi[int(rand($#verbi+1))];
-
     return $verbo;
-    
 }
 
 sub randAvverbio(){
-    # Scelgo una congiunzione per legarli
     my $avverbio = $avverbi[int(rand($#avverbi+1))];
-
     return $avverbio;
 }
 
@@ -184,7 +204,8 @@ sub randAggettivo($){
     my $sostantivo=shift;
     my $genere=$sostantivi{$sostantivo};
     my @aggKeys =keys(%aggettivi);
-   # Recupero la chiave dell'aggettivo cioà la sua forma principale
+
+    # Recupero la chiave dell'aggettivo cioà la sua forma principale
     my $agg=int(rand($#aggKeys+1));
     my $aggTemp=$aggKeys[$agg];
 
@@ -195,46 +216,14 @@ sub randAggettivo($){
 }
 
 sub randCongiunzione(){
-    # Scelgo una congiunzione per legarli
     my $cong = $congiunzioni[int(rand($#congiunzioni+1))];
     return $cong;
 }
 
 sub randPreposizione(){
-# Scelgo una congiunzione per legarli
     my $prep = $preposizioni[int(rand($#preposizioni+1))];
     return $prep;
 }
-
-##### TODO: ELIMINARE ? ########
-################################
-sub generateResponseTextSeA(){
-    # Recupero le chiavi. Quella dei sostantivi mi servirà per trovare il genere dell'aggettivo
-    my @sostKeys=keys(%sostantivi);
-    my @aggKeys =keys(%aggettivi);
-
-    my $sostK=int(rand($#sostKeys+1));
-    my $sostantivo=$sostKeys[$sostK];       # Sostantivo da stampare
-    my $sostGen=$sostantivi{$sostantivo};   # Genere del sostantivo
-
-    # Recupero la chiave dell'aggettivo cioà la sua forma principale
-    my $agg=int(rand($#aggKeys+1));
-    my $aggTemp=$aggKeys[$agg];
-    
-    # Recupero al forma corretta in base al genere del sostantivo
-    my $aggettivo=$aggettivi{$aggTemp}{$sostGen};
-
-    # Scelgo una congiunzione per legarli
-    my $cong = $congiunzioni[int(rand($#congiunzioni+1))]; 
-#    my $cong="";
-
-    # La risposta
-    # TODO: filtrare alcuni csi spuri es con "Avanti"
-    my $response="$sostantivo $cong $aggettivo";
-    $response =~ s/ +/ /;
-    return $response;
-}
-
 
 sub pulisciRisposta($){
     my $resp=shift;
@@ -273,7 +262,6 @@ sub generaVerboArtSostAgg(){
 }
 
 # Verbo preposizione articolo sostantivo aggettivo
-
 sub generaVerboPrepArtSostAgg(){
     my $sostantivo=randSostantivo();
     my $resp = randVerbo() . " " . randPreposizione() . " " . articolo($sostantivo) . " " . $sostantivo . " " . randAggettivo($sostantivo);
@@ -285,71 +273,3 @@ sub generaVerboAvverbo(){
     $resp = pulisciRisposta($resp);
 }
 
-
-##########################
-# DEBUG
-# my $maxFrasi=10;
-# for (my $i=0;$i<$maxFrasi;$i++){
-#     print generaSostAgg(); print"\n";
-#     print generaVerboArtSostAgg(); print"\n"; 
-#     print generaVerboPrepArtSostAgg(); print"\n";
-#     print generaVerboAvverbo(); print"\n";
-# }
-
-
-
-# print "-- Sostantivi e aggettivi\n";
-# for (my $i=0;$i<$maxFrasi;$i++){
-#     print generateResponseTextSeA();
-#     print "\n";
-# }
-# 
-# print "-- Sostantivi e aggettivi\n";
-# for (my $i=0;$i<$maxFrasi;$i++){
-#     my $sostantivo=randSostantivo();
-#     my $resp=$sostantivo ." " .randAggettivo($sostantivo);
-#     $resp =~ s/\s+!/!/g;
-#     print $resp;
-#     print "\n";
-# }
-# 
-# print "-- Verbo articolo sostantivi e aggettivi\n";
-# for (my $i=0;$i<$maxFrasi;$i++){
-#     my $sostantivo=randSostantivo();
-# 
-#     print randVerbo() . " " ;
-#     print articolo($sostantivo) ." ";
-#     print $sostantivo ." " ;
-#     print randAggettivo($sostantivo);
-#     print "\n";
-# }
-# 
-# #print "-- Verbo articolo sostantivi\n";
-# #for (my $i=0;$i<$maxFrasi;$i++){
-# #    my $sostantivo=randSostantivo();
-# #
-# #    print randVerbo() . " " ;
-# #    print articolo($sostantivo) ." ";
-# #    print $sostantivo ." " ;
-# #    print "\n";
-# #}
-# 
-# print "-- Verbo avverbio\n";
-# for (my $i=0;$i<$maxFrasi;$i++){
-# 
-#     print randVerbo() . " " ;
-#     print randAvverbio() ;
-#     print "\n";
-# }
-# 
-# print "-- Verbo preposizione articolo sostantivo aggettivo\n";
-# for (my $i=0;$i<$maxFrasi;$i++){
-#     my $sostantivo=randSostantivo();
-#     print randVerbo() . " " ;
-#     print randPreposizione() . " ";
-#     print articolo($sostantivo). " ";
-#     print $sostantivo . " ";
-#     print randAggettivo($sostantivo);
-#     print "\n";
-# }
-# 

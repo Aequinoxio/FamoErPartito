@@ -1,14 +1,19 @@
 #!/usr/bin/perl
 use LWP::UserAgent;
-use URI::Escape ('uri_escape');
-use JSON qw( decode_json );
+use URI::Escape ;#qw( uri_escape uri_escape_utf8 ); # ('uri_escape');
+use utf8;       #Necessario per far capire a Perl come trattare le lettere accentate nelle costanti
+use JSON;# qw( decode_json );
 use Data::Dumper;
 use warnings;
 use strict;
 use Fcntl qw(:flock);
+use Switch;
+
+require "./FamoErPartito_algo.pl";
 
 my $DBFile="/tmp/DB.txt";
 my $lockfile = '/tmp/FamoErPartito_lockfile';
+my $botKeyFile='/tmp/FamoErPartito_botKeyFile';
 
 my %DB;  ### Chiave:update_id Valore:chiat_id
 my $chatID=0;
@@ -20,42 +25,42 @@ my %lastID_CHAT;   # chiave chat_id Valore: lastID update della chat appena scar
 my %lastID_CHAT_DB; #come %lastID_CHAT ma relatiivco al DB *** FORSE INUTILE ***
 my $lastMessage="";
 my $botKey="";
-my $updateURL="https://api.telegram.org/bot$botKey/getUpdates";
-my $sendMessageURL="https://api.telegram.org/bot$botKey/sendMessage";
-####################################################################
-my @concetti=(
-    "Libertà",
-    "Democrazia",
-    "Unità",
-    "Uguaglianza",
-    "Giustizia",
-    "Sovranità",
-    "Civiltà",
-    "Solidarietà",
-    "Popolo",
-    "Movimento",
-    "Fratelli",
-    "Valori",
-    "Scelta",
-    "Costruire",
-    "Costruzione",
-    "Partecipazione",
-    "Partecipare",
-    "Moderati",
-    "Radicali",
-    "Riforme",
-    "Unione",
-    "Patto"
+
+# Inizializzo queste variabili una volta nota la botKey
+my $updateURL="";
+my $sendMessageURL="";
+
+my %keyboard=(
+#    resize_keyboard => true,
+    inline_keyboard => [
+        [{
+            text => 'Nome',
+            callback_data => '/nome'
+        },
+        {
+            text => '10 nomi',
+            callback_data => '/10nomi'
+        },
+        {
+            text => 'Help',
+            callback_data => '/help'
+        }]
+    ]
 );
+#print encode_json \%keyboard;
+
 
 my $HELP="Famo Er Partito.
-Quante volte avresti voluto farlo ma ti sei fermato perchè non sapevi da dove cominciare. 
-Ora puoi! Ti genererò un nome che potrai utilizzare per irretire l'elettorato.
+
+Quante volte avresti voluto fare un partito ma ti sei fermato perchè non sapevi da dove cominciare. 
+Ora puoi! Ti genererò un nome per irretire l'elettorato.
 
 I comandi disponibili sono:
-/help - questo aiuto
-/nome - per avere un nome der Partito";
+/help   - Un aiuto veloce per farti capire cosa posso fare
+/nome   - Genero un nome per il tuo Partito
+/10nomi - Genero 10 nomi per il tuo Partito tra cui scegliere";
 ####################################################################
+
 sub scriviDB(){
     open(my $fh, '>:encoding(UTF-8)', $DBFile) or die "Could not open file '$DBFile' $!";
 
@@ -102,12 +107,31 @@ sub gestisciUpdate(){
     	my @results=@{$pageJSON->{'result'}};
 	    foreach my $result (@results){
 	        my $update_id = $result->{'update_id'};
-    	    my $chatID= $result->{'message'}{'chat'}{'id'};
-            my $message=$result->{'message'}{'text'};
-	        if (!defined $chatID){
+            my $chatID=0;
+            my $message="*** NON TESTO ***";
+
+            if (exists $result->{'message'}){
+    	        $chatID= $result->{'message'}{'chat'}{'id'};
+#                print "*** $update_id - $chatID\n"; #DEBUG
+            } elsif (exists $result->{'callback_query'}){
+                $chatID= $result->{'callback_query'}{'message'}{'chat'}{'id'};
+                # Recupero il testo del comando inviato con la callback_query
+                $message=$result->{'callback_query'}{'data'};
+#                print "--- callback $chatID\n"; #DEBUG
+            }
+            
+            # Se ero in una call back_query nessuna delle seguenti condizioni è vera
+            if (exists $result->{'message'}{'text'}){
+                $message=$result->{'message'}{'text'};
+            } elsif (exists $result->{'message'}{'sticker'}){
+                $message="*** STICKER ***";
+            }elsif(exists $result->{'message'}{'document'}){
+                $message="*** DOCUMENTO ***";
+            } elsif (exists $result->{'edited_message'}){
 	    	    $chatID=$result->{'edited_message'}{'chat'}{'id'} ;
                 $message=$result->{'edited_message'}{'text'};
     	    }
+
 	        #print "$update_id -> $chatID\n";
 	        $DB{$update_id}=$chatID;
 
@@ -116,6 +140,7 @@ sub gestisciUpdate(){
 	        	$lastID=$update_id;
                 $lastChatID=$chatID;
 		        $lastMessage=$message;
+#                print $message;print "\n"; ### DEBUG
     	    }
 
             # Aggiorno il lastupdate_id di ciascuna chat
@@ -128,18 +153,26 @@ sub gestisciUpdate(){
     }    
 }
 
-# TODO: Inutile?
 sub getLastMessageFromChatID(){
 
 }
 
 sub generateResponseText(){
-   my $val1=int(rand($#concetti));
-   my $val2=int(rand($#concetti));
+#   return "WORK IN PROGRESS...";
+#   generaSostAgg(); print"\n";
+#   generaVerboArtSostAgg(); print"\n";
+#   generaVerboPrepArtSostAgg(); print"\n";
+#   generaVerboAvverbo(); print"\n";
 
-   my $response="$concetti[$val1] e $concetti[$val2]";
-
-   return $response;
+    my $tipo = int(rand(4));
+    my $resp="";
+    switch ($tipo){
+        case 1 {$resp = generaSostAgg()}
+        case 2 {$resp = generaVerboArtSostAgg()}
+        case 3 {$resp = generaVerboPrepArtSostAgg()}
+        case 0 {$resp = generaVerboAvverbo()}
+    }
+    return $resp;
 }
 
 ## Richiede due parametri, la risposta e la chatID
@@ -152,9 +185,11 @@ sub publishResponse($$){
     $ua->cookie_jar( {} );
     $ua->protocols_allowed( [ 'http','https'] );
     my $resp= $ua->get(
-        "$sendMessageURL" ."?chat_id=". uri_escape("$chatID") .
-        "&text=".uri_escape($response)
+        "$sendMessageURL" ."?chat_id=". uri_escape_utf8("$chatID") .
+        "&text=".uri_escape_utf8($response).
+        "&reply_markup=" . encode_json(\%keyboard)
     );
+#    print Dumper($resp); #DEBUG
 }
 
 sub parseMessage(){
@@ -170,14 +205,19 @@ sub parseMessage(){
         # Rispondo alla chat
         my $chatID=$DB{$id};
         my $command=$lastID_CHAT{$chatID}{$id};
-# DEBUG        print "$id ($lastID) - $chatID  - $command \n";
+#        print "$id ($lastID) - $chatID  - $command \n"; #DEBUG
 
         # Parsing del comando
         if ($command eq "/help"){
             $response=$HELP;
         } elsif ($command eq "/nome"){
             $response=generateResponseText();
-        } else {
+        } elsif ($command eq "/10nomi") {
+            for (my $i=0;$i<10;$i++){
+                $response .= generateResponseText(); $response .= "\n";
+            }
+        } 
+        else {
             $response="Comando \"$command\"  non valido.\n$HELP\n";
         }
     
@@ -198,24 +238,40 @@ sub DEBUG_PRINTALL(){
 }
 
 
-sub ErrAndExit {
-    print "$0 già in esecuzione. Termino.\n";
-    print "(File '$lockfile' è già lockato).\n";
+sub ErrAndExit ($) {
+    my $silent=shift;
+    if ($silent ne "yes"){
+        print "$0 già in esecuzione. Termino ";
+        print "(File '$lockfile' è già lockato).\n";
+    }
     exit(1);
 }
-################### MAIN #####################
 
-if ($botKey eq ""){
-    print "Devi impostare la variabile '\$botKey' con la chiave del bot definita su Telegram\n";
-    print "Non faccio nulla ed esco.\n";
-    exit(1)
-}
+#
+#
+# ################## MAIN #####################
+#
+#
+
+
+#if ($botKey eq ""){
+#    print "Devi impostare la variabile '\$botKey' con la chiave del bot definita su Telegram\n";
+#    print "Non faccio nulla ed esco.\n";
+#    exit(1)
+#}
 
 # Mi accerto di avere una sola istanza running
 open(my $fhpid, '>', $lockfile) or die "error: open '$lockfile': $!";
-flock($fhpid, LOCK_EX|LOCK_NB) or ErrAndExit();
+flock($fhpid, LOCK_EX|LOCK_NB) or ErrAndExit("yes");
 
 ####### Ok ora parto sul serio ###########
+open(my $fhkf,'<',$botKeyFile) or die "Errore nell'pertura del file con la chiave del bot $botKeyFile";
+$botKey = <$fhkf>;
+chomp($botKey);
+close $fhkf;
+
+$updateURL="https://api.telegram.org/bot$botKey/getUpdates";
+$sendMessageURL="https://api.telegram.org/bot$botKey/sendMessage";
 
 leggiDB(); # Recupero gli eventuali update_ID e chatID salvati in passato per evitare di rispondere a comandi già dati
 
