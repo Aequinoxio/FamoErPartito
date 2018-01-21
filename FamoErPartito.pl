@@ -144,26 +144,26 @@ sub gestisciUpdate(){
     	    }
 
             # Aggiorno il lastupdate_id di ciascuna chat
-            if (!defined $lastID_CHAT{$chatID} || $lastID_CHAT{$chatID}<$update_id){
-#                $lastID_CHAT{$chatID}=$update_id;
+#            print keys %{ $lastID_CHAT{$chatID} };print "\n"; # DEBUG
+#            print Dumper (\%lastID_CHAT); print "\n"; #DEBUG
+            if (!defined $lastID_CHAT{$chatID}){
                 $lastID_CHAT{$chatID}{$update_id}=$lastMessage;
-# DEBUG                print "$chatID -> $update_id -> $lastMessage\n";
+#               print "$chatID -> $update_id -> $lastMessage\n"; #DEBUG
+            }else{ 
+            #elsif ((sort {$lastID_CHAT{$chatID}{$a} <=> $lastID_CHAT{$chatID}{$b}} keys %{$lastID_CHAT{$chatID}})[0] <$update_id){
+
+            # TODO: FORSE è inutile???????? #
+                my @revTemp=reverse sort(keys(%{$lastID_CHAT{$chatID} }));
+                my $lastID_TEMP=$revTemp[0];
+                if ( $lastID_TEMP <$update_id){ 
+                    $lastID_CHAT{$chatID}{$update_id}=$lastMessage;
+                }
             }
 	    }   
     }    
 }
 
-sub getLastMessageFromChatID(){
-
-}
-
 sub generateResponseText(){
-#   return "WORK IN PROGRESS...";
-#   generaSostAgg(); print"\n";
-#   generaVerboArtSostAgg(); print"\n";
-#   generaVerboPrepArtSostAgg(); print"\n";
-#   generaVerboAvverbo(); print"\n";
-
     my $tipo = int(rand(6));
     my $resp="";
     switch ($tipo){
@@ -200,13 +200,15 @@ sub parseMessage(){
     for my $id (sort keys %DB){
         # Se l'id è già nel DB ho risposto e passo olte 
         if ($id <= $lastID_DB){
-# DEBUG           print "jump $id\n";
+#            print "jump $id\n";  # DEBUG
             next;
         }
+
 
         # Rispondo alla chat
         my $chatID=$DB{$id};
         my $command=$lastID_CHAT{$chatID}{$id};
+#        print Dumper (\%lastID_CHAT); print"\n"; #DEBUG
 #        print "$id ($lastID) - $chatID  - $command \n"; #DEBUG
 
         # Parsing del comando
@@ -222,8 +224,9 @@ sub parseMessage(){
         else {
             $response="Comando \"$command\"  non valido.\n$HELP\n";
         }
-    
-        publishResponse($chatID,$response);
+
+        print "Rispondo alla chat:$chatID -> $response\n"; #DEBUG    
+        publishResponse($chatID,$response); ### TODO: RIPRISTINARE DOPO IL DEBUG SUGLI UPDATE ID
     }   
 }
 
@@ -234,9 +237,11 @@ sub DEBUG_PRINTALL(){
             print "$key -> $key2 -> $lastID_CHAT{$key}{$key2}";
             print "\n";
         }
-    }                    }
-    foreach my $key (keys %lastID_CHAT_DB){
-#    print "$key -> $lastID_CHAT{$key}\n";
+    }                    
+#    foreach my $key (keys %lastID_CHAT_DB){
+#        print "$key -> $lastID_CHAT{$key}\n";
+#    }
+
 }
 
 
@@ -254,13 +259,6 @@ sub ErrAndExit ($) {
 # ################## MAIN #####################
 #
 #
-
-
-#if ($botKey eq ""){
-#    print "Devi impostare la variabile '\$botKey' con la chiave del bot definita su Telegram\n";
-#    print "Non faccio nulla ed esco.\n";
-#    exit(1)
-#}
 
 # Mi accerto di avere una sola istanza running
 open(my $fhpid, '>', $lockfile) or die "error: open '$lockfile': $!";
