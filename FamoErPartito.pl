@@ -164,13 +164,15 @@ sub generateResponseText(){
 #   generaVerboPrepArtSostAgg(); print"\n";
 #   generaVerboAvverbo(); print"\n";
 
-    my $tipo = int(rand(4));
+    my $tipo = int(rand(6));
     my $resp="";
     switch ($tipo){
+        case 0 {$resp = generaVerboAvverbo()}
         case 1 {$resp = generaSostAgg()}
         case 2 {$resp = generaVerboArtSostAgg()}
         case 3 {$resp = generaVerboPrepArtSostAgg()}
-        case 0 {$resp = generaVerboAvverbo()}
+        case 4 {$resp = generaSostantivoCongSost()}
+        case 5 {$resp = generaAggettivoCongAggettivo()}
     }
     return $resp;
 }
