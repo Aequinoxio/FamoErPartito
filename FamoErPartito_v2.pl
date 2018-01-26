@@ -151,7 +151,7 @@ sub gestisciUpdate(){
             $gDBUidChIDMsg{$update_id}{$chatID}=$message;
             $gLastTelegramID=$update_id;
             $gLastChatID=$chatID;
-            $gLastMessage=$message;
+#            $gLastMessage=$message;
 #            print Dumper (\%lastID_CHAT); print "\n"; #DEBUG
 	    }   
     }    
