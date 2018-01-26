@@ -7,7 +7,7 @@ use utf8;
 # Costanti
 # ###################################################################
 #
-
+{
 my @genereQuanto = (  # s = singolare, p = plurale, m = maschile, f = femminile
     "sm", 
     "pm",
@@ -78,7 +78,9 @@ my %sostantivi=(
     "Diritti"       => "pm" ,
     "Basta"         => "sf" ,
     "Costituzione"  => "sf" ,
-    "Identità"      => "sf"
+    "Identità"      => "sf" ,
+    "Alternativa"   => "sf" ,
+    "Area"          => "sf"
 );
 
 my @preposizioni=(
@@ -149,6 +151,7 @@ my @verbi=(
     "Unire",
     "Unirsi"
 );
+
 
 my %articoli=(
     "il" => {"sm" => "il", "sf" => "la", "pm" => "i", "pf" => "le"},
@@ -346,7 +349,7 @@ sub generaAggettivoCongAggettivo(){
     $resp = pulisciRisposta($resp);
     return $resp;
 }
-
+}
 #
 ########### PER I MODULI DEVE TORNARE TRUE #########
 1
