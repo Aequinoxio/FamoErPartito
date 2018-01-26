@@ -8,6 +8,7 @@ use warnings;
 use strict;
 use Fcntl qw(:flock);
 use Switch;
+use POSIX;
 
 require "./FamoErPartito_algo.pl";
 
@@ -64,7 +65,7 @@ I comandi disponibili sono:
 sub scriviDB(){
     open(my $fh, '>:encoding(UTF-8)', $DBFile) or die "Could not open file '$DBFile' $!";
 
-    foreach my $key (keys(%DB)){
+    foreach my $key (sort keys(%DB)){
         print $fh "$key:$DB{$key}\n";
     }
     close $fh;
@@ -77,7 +78,8 @@ sub leggiDB(){
         chomp $row;
         
         # update_id:chat_id
-    	my ($update_id,$chat_id) = split(":",$row);
+        ####### TODO: Gestire il caso in cui nel DB di siano casi spuri (es. chat ID inesistenti o update_ID maggiori di quelli in Telegram
+        my ($update_id,$chat_id) = split(":",$row);
         $DB{$update_id}=$chat_id;
 
         # Aggiorno il DB chhtID -> update_id
@@ -92,7 +94,6 @@ sub leggiDB(){
 
 
 sub gestisciUpdate(){
-    
     my $ua = new LWP::UserAgent;
     $ua->agent("Mozilla/8.0");
     $ua->cookie_jar( {} ); 
@@ -144,21 +145,18 @@ sub gestisciUpdate(){
     	    }
 
             # Aggiorno il lastupdate_id di ciascuna chat
-#            print keys %{ $lastID_CHAT{$chatID} };print "\n"; # DEBUG
-#            print Dumper (\%lastID_CHAT); print "\n"; #DEBUG
             if (!defined $lastID_CHAT{$chatID}){
-                $lastID_CHAT{$chatID}{$update_id}=$lastMessage;
+                $lastID_CHAT{$chatID}{$update_id}=$message;
 #               print "$chatID -> $update_id -> $lastMessage\n"; #DEBUG
             }else{ 
-            #elsif ((sort {$lastID_CHAT{$chatID}{$a} <=> $lastID_CHAT{$chatID}{$b}} keys %{$lastID_CHAT{$chatID}})[0] <$update_id){
-
             # TODO: FORSE è inutile???????? #
                 my @revTemp=reverse sort(keys(%{$lastID_CHAT{$chatID} }));
                 my $lastID_TEMP=$revTemp[0];
                 if ( $lastID_TEMP <$update_id){ 
-                    $lastID_CHAT{$chatID}{$update_id}=$lastMessage;
+                    $lastID_CHAT{$chatID}{$update_id}=$message;
                 }
             }
+#            print Dumper (\%lastID_CHAT); print "\n"; #DEBUG
 	    }   
     }    
 }
@@ -196,14 +194,13 @@ sub publishResponse($$){
 
 sub parseMessage(){
     my $response="";
-    # Ciclo su tutti gli update_is
+    # Ciclo su tutti gli update_id
     for my $id (sort keys %DB){
-        # Se l'id è già nel DB ho risposto e passo olte 
+        # Se l'id è già nel DB che avevo salvato allora ho risposto e passo olte 
         if ($id <= $lastID_DB){
 #            print "jump $id\n";  # DEBUG
             next;
         }
-
 
         # Rispondo alla chat
         my $chatID=$DB{$id};
@@ -225,7 +222,7 @@ sub parseMessage(){
             $response="Comando \"$command\"  non valido.\n$HELP\n";
         }
 
-        print "Rispondo alla chat:$chatID -> $response\n"; #DEBUG    
+        print "Rispondo alla chat:$chatID -> $command\n"; #DEBUG    
         publishResponse($chatID,$response); ### TODO: RIPRISTINARE DOPO IL DEBUG SUGLI UPDATE ID
     }   
 }
@@ -273,7 +270,20 @@ close $fhkf;
 $updateURL="https://api.telegram.org/bot$botKey/getUpdates";
 $sendMessageURL="https://api.telegram.org/bot$botKey/sendMessage";
 
+$lastID=0;
+$lastID_DB=0;
+
 leggiDB(); # Recupero gli eventuali update_ID e chatID salvati in passato per evitare di rispondere a comandi già dati
+
+# Workaround - First run non faccio nulla ma allineo il DB con la situazione su Telegram. Dovrei evitare così di rispondere a messaggigià risposti
+gestisciUpdate();
+scriviDB();
+
+print "Bot started - lastID=$lastID - lastID_DB=$lastID_DB - salto tutti i messaggi, inizio a rispondere ai nuovi da ora: ";
+print strftime "%F %T", localtime $^T;
+print "\n";
+
+$lastID_DB=$lastID;  # scorciatoia per evitare di rileggere tutto il DB visto che a meno di un blocco è già nell'hash DB
 
 # Ciclo perenne per trattare tutti gli update
 while (1){
